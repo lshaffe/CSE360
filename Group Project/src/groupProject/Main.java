@@ -5,6 +5,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
+
 public class Main {
 
 	public static void main(String[] args){
@@ -76,8 +77,7 @@ public class Main {
 		
 		frame.add(south, BorderLayout.SOUTH);
 		
-		ArrayList list = new ArrayList();
-		LinkedList network = new LinkedList();
+		ArrayList<LinkedList> list = new ArrayList<LinkedList>();
 		
 		add.addActionListener(new ActionListener()
 		{
@@ -93,45 +93,174 @@ public class Main {
 					error.setText("Please enter an integer for duration.");
 				}
 				
-				if(network.exists(name.getText()))
-				{
-					error.setText("Activity name already exists.");
-				}
+
 				
-				else if(name.getText().equals("") || duration.getText().equals("") || dependencies.getText().equals(""))
+				if(name.getText().equals("") || duration.getText().equals("") || dependencies.getText().equals(""))
 				{
 					error.setText("Please fill in all parameters");
+					return;
 				} 	
 				else
-				{
+				{	 
 					if(dependencies.getText().toLowerCase().equals("none"))
 					{
 						//create a new path
+						LinkedList network = new LinkedList();//new path
+						list.add(network);
 						String[] dep = {}; 
 						int durat = Integer.parseInt(duration.getText());
 						Actvities act = new Actvities(name.getText(), durat ,dep);
 						network.add(act);
 						error.setText("Activity successfully added.");
 					}
+					
+					
 					else
-					{
+					{//add to existing path
 						String[] dep = dependencies.getText().split("/");
 						int durat = Integer.parseInt(duration.getText());
 						Actvities act = new Actvities(name.getText(), durat ,dep);
-						network.add(act);
+						
+						int j = 0;
+						int x=0;
+						
+						boolean nodeExists=false;
+						boolean dependExists=false;
+						
+						//for new path
+						  
+						//for each LinkedList in the ArrayList
+						for(int i = 0; i < list.size(); i++)
+							{
+								if(list.get(i).exists(name.getText()))
+								{
+									x=i;
+									nodeExists=true;
+								}
+								if(list.get(i).exists(dependencies.getText()))
+								{
+									j=i;
+									dependExists=true;
+								}
+							}
+								//check through each LinkedList for Node existence
+								if (!nodeExists)
+								{
+									if(dependExists)
+									{
+										//as ghost:
+										if(list.get(j).isGhost())
+											//add new node as dependency.next
+											list.get(j).add(act);
+										
+										//as full node
+										{
+											//add new node as dependency.next
+											list.get(j).add(act);
+						
+											if(list.get(j).hasLoop())
+											{
+												error.setText("Node would create cycle.");
+												list.get(j).removeNode(act.getName());
+												return;
+											}
+											
+											error.setText("Activity successfully added.");
+										}
+									}
+											
+									//else if dependency !exist:
+									else 
+									{
+										//create ghost dependency node
+										Actvities dependency = new Actvities(dep[0],0,null,true);
+										
+										//create new LinkedList(ghost->full node)
+										LinkedList ghostList= new LinkedList();
+										ghostList.add(dependency);
+										ghostList.add(act);
+										
+										//add LinkedList to ArrayList
+										list.add(ghostList);
+										return;
+									}
+								}
+								
+								//if the node to be added does exist somewhere
+								else  
+								{
+									//if the node exists as a ghost node
+									if(list.get(x).isGhost())
+									{
+										//fill in details of the node from user input
+										list.get(x).updateHead(name.getText(), durat ,dep);
+										//find dependency of the node,
+										LinkedList newList= new LinkedList();
+										newList=newList.combine(list.get(j),list.get(x),dependencies.getText(),name.getText());
+										
+										LinkedList lista=list.get(j);
+										LinkedList listb=list.get(x);
+										
+										list.remove(lista);
+										list.remove(listb);
+										list.add(newList);
+									}
+									
+									//if the node exists as a regular node, print error
+									else if(!(list.get(x).isGhost()))
+									{
+										error.setText("Error, that node already exists");
+										return;
+									}
+								}	
+							}
+				
+						
+						/*
+						for(int i= 0; i < list.size(); i++)
+						{
+							if(list.get(i).exists(dependencies.getText()))
+									j = i;
+						}
+						
+						
+						list.get(j).add(act);
+						
+						if(list.get(j).hasLoop())
+						{
+							error.setText("Node would create cycle.");
+							list.get(j).removeNode(act.getName());
+							return;
+						}
+						
 						error.setText("Activity successfully added.");
+						*/
 					}
 					
 				}
 			}
-		});
+		);
 		
 		refresh.addActionListener(new ActionListener()
 		{
 			public void actionPerformed(ActionEvent event) 
 			{
 				//TO STRING 
-				output.setText(network.toString());
+				LinkedList temp;
+				
+				Collections.sort(list, new sortByLength());
+			
+				
+				
+				String out = "";
+				
+				
+				for(int i = 0; i<list.size(); i++)
+				{
+					out +="Path: " + (i+1) + "\tDuration: " + list.get(i).durationTotal() + "\n";
+					out += list.get(i).pathtoString() + "\n\n\n";
+				}
+				output.setText(out);
 			}
 		});
 		
@@ -165,7 +294,8 @@ public class Main {
 			{
 				error.setText("No messages");
 				output.setText("No Activities");
-				network.delete();
+				
+				list.clear();//delete arraylist
 			}
 		});
 		

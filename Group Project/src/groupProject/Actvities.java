@@ -4,12 +4,22 @@ public class Actvities {
 	private String name;
 	private int duration;
 	private String[] dependency;
+	private boolean ghostDep;
 	
 	public Actvities(String name1, int durat, String[] depend)
 	{
 		name = name1;
 		duration = durat;
 		dependency = depend;
+		ghostDep = false;
+	}
+	
+	public Actvities(String name1, int durat, String[] depend, boolean ghost)
+	{
+		name = name1;
+		duration = durat;
+		dependency = depend;
+		ghostDep = ghost;
 	}
 	
 	public String getName()
@@ -39,6 +49,10 @@ public class Actvities {
 	
 	public String dependencyString(String[] dependency)
 	{
+		if(dependency==null) //ghost node
+		{
+			return "";
+		}
 		String output = "";
 		for(int i = 0; i < dependency.length; i++)
 		{
@@ -51,5 +65,8 @@ public class Actvities {
 		return output;
 	}
 	
-	
+	public boolean isGhost()
+	{
+		return ghostDep;
+	}
 }
