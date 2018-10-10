@@ -3,13 +3,9 @@ import java.util.*;
 
 public class LinkedList{
 
-	private class Node
-	{
-		public Node next; 
-		public Actvities act;
-	}
+
 	
-	private Node head;
+	private Actvities head;
 	
 	
 	public LinkedList()
@@ -21,23 +17,19 @@ public class LinkedList{
 	{
 		if(head == null)
 		{
-			Node first = new Node();
-			first.act = activity;
-			first.next = null;
-			head = first;
+			head = activity;
+			head.next = null;
 		}
 		else
 		{
-			Node current = new Node();
+			Actvities current = new Actvities();
 			current = head;
 			while(current.next != null)
 			{
 				current = current.next;
 			}
-			Node activ = new Node();
-			activ.act = activity;
-			current.next = activ;
-			activ.next = null;	
+			current.next = activity;
+			activity.next = null;	
 		}
 
 	}
@@ -50,11 +42,11 @@ public class LinkedList{
 	public int durationTotal()//gets sum of path duration
 	{
 		int sum = 0;
-		Node current = head;
+		Actvities current = head;
 		
 		while(current != null)
 		{
-			sum += current.act.getDuration();
+			sum += current.getDuration();
 			current = current.next;
 		}
 		
@@ -63,7 +55,7 @@ public class LinkedList{
 	
 	public String pathtoString()
 	{
-		Node current = head;
+		Actvities current = head;
 		//sort then make String
 		//intSort();
 		
@@ -71,7 +63,7 @@ public class LinkedList{
 		
 		while(current != null)
 		{
-			output += current.act.getName() + ", " + current.act.getDuration()+ ", (" + current.act.dependencyString(current.act.getDependency()) + ")" + "\n";
+			output += current.getName() + ", " + current.getDuration()+ ", (" + current.dependencyString(current.getDependency()) + ")" + "\n";
 			
 			current = current.next;
 		}
@@ -83,10 +75,10 @@ public class LinkedList{
 	{
 		boolean exists = false;
 		
-		Node current = head;
+		Actvities current = head;
 		while(current != null)
 		{
-			if(current.act.getName().equals(name))
+			if(current.getName().equals(name))
 				return true;
 			current = current.next;
 		}
@@ -97,20 +89,35 @@ public class LinkedList{
 	{
 		boolean exists = false;
 		
-		Node current = head;
+		Actvities current = head;
 		while(current != null)
 		{
-			if(current.act.getDependency().equals(name))
+			if(current.getDependency().equals(name))
 				return true;
 			current = current.next;
 		}
 		return exists;
 	}
 	
+	public boolean multiDepenExist(String[] deps)
+	{
+		boolean exists = true;
+		
+		for(int i=0; i < deps.length; i++)
+		{
+			if(!exists(deps[i]))
+			{
+				exists = false;
+			}
+		}
+	
+		return exists;
+	}
+	
 	public boolean hasLoop()
 	{
 		ArrayList prevNodes = new ArrayList();
-		Node current = head;
+		Actvities current = head;
 		while (current!=null)
 		{
 			if (!prevNodes.contains(current.next))
@@ -128,11 +135,11 @@ public class LinkedList{
 	
 	public void removeNode(String name)
 	{
-		Node current = head;
+		Actvities current = head;
 		
 		while(current!=null)
 		{
-			if(current.act.getName().equals(name))
+			if(current.getName().equals(name))
 			{
 				current = null;
 				return;
@@ -141,12 +148,12 @@ public class LinkedList{
 		}
 	}
 	
-	public Node findByName(String name)
+	public Actvities findByName(String name)
 	{
-		Node current = head;
+		Actvities current = head;
 		while(current!=null)
 		{
-			if(current.act.getName().equals(name))
+			if(current.getName().equals(name))
 				return current;
 			current = current.next;
 		}
@@ -154,44 +161,51 @@ public class LinkedList{
 	}
 	public boolean isGhost()
 	{
-		if(head.act.isGhost())
+		if(head.isGhost())
 		{
 			return true;
 		}
 		return false;
 	}
 	
-	public LinkedList combine(LinkedList a,LinkedList b,String parent,String child)
+	//public LinkedList combine(LinkedList a,LinkedList b,String parent,String child)
+	public void combine(LinkedList a,LinkedList b,String parent,String child)
 	{
+		/*
 		LinkedList result = new LinkedList();
-		Node par = a.findByName(parent);
-		Node chil = b.findByName(child);
+		Actvities par = a.findByName(parent);
+		Actvities chil = b.findByName(child);
 		
-		Node current=a.head;
-		while(current!=par  && current.next!=null)
+		Actvities current=a.head;
+		while(current!=par )
 		{
-			result.add(current.act);
+			result.add(current);
 			current=current.next;
 		}
-		result.add(current.act);
+		result.add(current);
 		
 		current=b.head;
 		while(current!=null)
 		{
-			result.add(current.act);
+			result.add(current);
 			current=current.next;
 		}
 		
 		return result;
+		*/
+		Actvities par = a.findByName(parent);
+		Actvities chil = b.findByName(child);
+		par.next=chil;
+		
 	}
 	
 	public void updateHead(String name, int length, String[] depends)
 	{
-		Node newHead = new Node();
+		Actvities newHead = new Actvities();
 		Actvities newAct = new Actvities(name,length,depends);
-		newHead.act=newAct;
+		newHead=newAct;
 		
-		Node Hnext=head.next;
+		Actvities Hnext=head.next;
 		head=newHead;
 		head.next=Hnext;
 		return;

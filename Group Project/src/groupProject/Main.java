@@ -126,8 +126,7 @@ public class Main {
 						
 						boolean nodeExists=false;
 						boolean dependExists=false;
-						
-						//for new path
+						boolean multiDepExists=false;
 						  
 						//for each LinkedList in the ArrayList
 						for(int i = 0; i < list.size(); i++)
@@ -137,14 +136,21 @@ public class Main {
 									x=i;
 									nodeExists=true;
 								}
-								if(list.get(i).exists(dependencies.getText()))
+								if(list.get(i).exists(dependencies.getText())) //only use for singular dependencies
 								{
 									j=i;
 									dependExists=true;
 								}
+								if(dep.length > 1)///////////////////////////////////////////////////////////////////////IF MULTI DEPENDENCIES
+								{
+									if(list.get(i).multiDepenExist(dep))
+									{
+										multiDepExists = true;
+									}
+								}
 							}
 								//check through each LinkedList for Node existence
-								if (!nodeExists)
+								if (!nodeExists && dep.length==1)
 								{
 									if(dependExists)
 									{
@@ -187,7 +193,7 @@ public class Main {
 								}
 								
 								//if the node to be added does exist somewhere
-								else  
+								else if (nodeExists && dep.length==1)
 								{
 									//if the node exists as a ghost node
 									if(list.get(x).isGhost())
@@ -196,14 +202,133 @@ public class Main {
 										list.get(x).updateHead(name.getText(), durat ,dep);
 										//find dependency of the node,
 										LinkedList newList= new LinkedList();
-										newList=newList.combine(list.get(j),list.get(x),dependencies.getText(),name.getText());
+										//newList=newList.combine(list.get(j),list.get(x),dependencies.getText(),name.getText());
+										newList.combine(list.get(j),list.get(x),dependencies.getText(),name.getText());
 										
 										LinkedList lista=list.get(j);
 										LinkedList listb=list.get(x);
 										
+										/*
 										list.remove(lista);
 										list.remove(listb);
 										list.add(newList);
+										*/
+
+										list.remove(listb);
+									}
+									
+									//if the node exists as a regular node, print error
+									else if(!(list.get(x).isGhost()))
+									{
+										error.setText("Error, that node already exists");
+										return;
+									}
+								}	
+								
+								//MULTI DEPENDENCIES
+								//check through each LinkedList for Node existence
+								if (!nodeExists && dep.length>1)
+								{
+									//for each dependency
+									for(int d=0;d<dep.length;d++)
+									{
+										//if ArrayList is empty, create a first empty list
+										if(list.size()==0)
+										{
+											//create ghost dependency node
+											Actvities dependency = new Actvities(dep[d],0,null,true);
+											
+											//create new LinkedList(ghost->full node)
+											LinkedList ghostList= new LinkedList();
+											ghostList.add(dependency);
+											ghostList.add(act);
+											
+											//add LinkedList to ArrayList
+											list.add(ghostList);
+											continue;
+										}
+										//if it exists in any LinkedList in the ArrayList
+										int t=0;
+										boolean indvExists=false;
+										for(t=0;t<list.size();t++)
+										{
+											if(list.get(t).exists(dep[d]))
+											{
+												indvExists=true;
+												break;
+											}
+										}
+											if(indvExists)
+											{
+												//as ghost:
+												if(list.get(t).isGhost())
+													//add new node as dependency.next
+													list.get(t).add(act);
+												
+												//as full node
+												{
+													//add new node as dependency.next
+													list.get(t).add(act);
+								
+													if(list.get(t).hasLoop())
+													{
+														error.setText("Node would create cycle.");
+														list.get(t).removeNode(act.getName());
+														return;
+													}
+													
+													error.setText("Activity successfully added.");
+												}
+											}
+													
+											//else if dependency !exist:
+											else 
+											{
+												//create ghost dependency node
+												Actvities dependency = new Actvities(dep[d],0,null,true);
+												
+												//create new LinkedList(ghost->full node)
+												LinkedList ghostList= new LinkedList();
+												ghostList.add(dependency);
+												ghostList.add(act);
+												
+												//add LinkedList to ArrayList
+												list.add(ghostList);
+												continue;
+											}
+										}
+									}
+								//if the node to be added does exist somewhere
+								else if (nodeExists && dep.length>1)
+								{
+									//if the node exists as a ghost node
+									if(list.get(x).isGhost())
+									{
+										for(int d=0;d<dep.length;d++)
+										{
+											//fill in details of the node from user input
+											list.get(x).updateHead(name.getText(), durat ,dep);
+											//find dependency of the node,
+											LinkedList newList= new LinkedList();
+											//newList=newList.combine(list.get(j),list.get(x),dependencies.getText(),name.getText());
+											newList.combine(list.get(j),list.get(x),dependencies.getText(),name.getText());
+											/*
+											LinkedList lista=list.get(j);
+											LinkedList listb=list.get(x);
+											
+											list.remove(lista);
+											list.remove(listb);
+											list.add(newList);
+											
+											LinkedList lista=list.get(j);
+											LinkedList listb=list.get(x);
+											
+											if(d==dep.length-1)
+												list.remove(listb);
+											list.remove(lista);
+											list.add(newList);
+											*/
+										}
 									}
 									
 									//if the node exists as a regular node, print error
@@ -214,6 +339,8 @@ public class Main {
 									}
 								}	
 							}
+					
+					
 				
 						
 						/*

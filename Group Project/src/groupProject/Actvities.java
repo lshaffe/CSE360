@@ -1,10 +1,22 @@
 package groupProject;
+
+import java.util.ArrayList;
+
 public class Actvities {
 	
 	private String name;
 	private int duration;
-	private String[] dependency;
+	public Actvities next;
+	private String[] dependency = {"",""};
 	private boolean ghostDep;
+	
+	public Actvities()
+	{
+		name = "";
+		duration = 0;
+		//dependency gets initialized up top
+		ghostDep = false;
+	}
 	
 	public Actvities(String name1, int durat, String[] depend)
 	{
@@ -68,5 +80,14 @@ public class Actvities {
 	public boolean isGhost()
 	{
 		return ghostDep;
+	}
+	
+	public boolean hasChild()
+	{
+		if(this.next!=null)
+		{
+			return true;
+		}
+		return false;
 	}
 }
