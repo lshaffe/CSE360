@@ -1,33 +1,42 @@
-package groupProject;
+package cse360;
 import java.util.*;
-import java.io.*;
 import javax.swing.*;
 import java.awt.*;
+import java.io.*;
 import java.awt.event.*;
-
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 
 public class Main {
 
+	
+	
 	public static void main(String[] args){
 		
-		JFrame frame = new JFrame("Testing");
+		JFrame frame = new JFrame("CSE 360");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
-		frame.setSize(800, 500);
+		frame.setSize(860, 560);
 		
 		frame.setLayout(new BorderLayout());
 
 		JButton add = new JButton("Add");
-		JButton refresh = new JButton("Refresh");
+		JButton process = new JButton("Process");
+		JButton critical = new JButton("Critical Path");
+		JButton edit = new JButton("Edit");
 
 		JButton about = new JButton("About");
 		JButton help = new JButton("Help");
+		JLabel fileName = new JLabel("Input File Name");
+		JTextField rip = new JTextField(15);
+		JButton report = new JButton("Create a Report");
 		JButton restart = new JButton("Restart");
 		JButton quit = new JButton("Quit");
 
 		
 		JPanel top = new JPanel();
-		JTextArea output = new JTextArea(20,40);
+		JTextArea output = new JTextArea(20,45);
+		JScrollPane mainScroll = new JScrollPane(output);
 		output.setText("No Activities");
 		output.setEditable(false);
 		
@@ -37,37 +46,43 @@ public class Main {
 		error.setEditable(false);
 		error.setText("No messages");
 		
-		top.add(output, BorderLayout.WEST);
+		top.add(mainScroll, BorderLayout.WEST);
 		top.add(error, BorderLayout.EAST);
 		
 		frame.add(top, BorderLayout.NORTH);
 		
-		JLabel nam = new JLabel("Input activity name");
-		JLabel dur = new JLabel("Input Duration");
-		JLabel depe = new JLabel("Input dependencies, seperated by '/'");
+		JLabel nameLabel = new JLabel("Input activity name");
+		JLabel durationLabel = new JLabel("Input Duration");
+		JLabel dependenciesLabel = new JLabel("Input dependencies, seperated by '/'");
 		
-		JTextField name = new JTextField(15);
-		JTextField duration = new JTextField(15);
-		JTextField dependencies = new JTextField(15);
+		JTextField nameBox = new JTextField(15);
+		JTextField durationBox = new JTextField(15);
+		JTextField dependenciesBox = new JTextField(15);
 	
 		
 		JPanel south = new JPanel();
 
 		JPanel textfields = new JPanel();
-		textfields.setLayout(new GridLayout(4,2,10,0));
-		textfields.add(nam);
-		textfields.add(name);
-		textfields.add(dur);
-		textfields.add(duration);
-		textfields.add(depe);
-		textfields.add(dependencies);
+		textfields.setLayout(new GridLayout(6,2,10,5));
+		textfields.add(nameLabel);
+		textfields.add(nameBox);
+		textfields.add(durationLabel);
+		textfields.add(durationBox);
+		textfields.add(dependenciesLabel);
+		textfields.add(dependenciesBox);
 		
 		textfields.add(add);
-		textfields.add(refresh);
+		textfields.add(process);
+		textfields.add(critical);
+		textfields.add(edit);
 		
 		south.add(textfields, BorderLayout.WEST);
 		
 		JPanel buttons = new JPanel();
+		buttons.setLayout(new GridLayout(4,2,10,5));
+		buttons.add(fileName);
+		buttons.add(rip);
+		buttons.add(report);
 		buttons.add(about);
 		buttons.add(help);
 		buttons.add(restart);
@@ -77,317 +92,269 @@ public class Main {
 		
 		frame.add(south, BorderLayout.SOUTH);
 		
-		ArrayList<LinkedList> list = new ArrayList<LinkedList>();
+		//pathsArray is a list of all paths through the network
+		ArrayList<LinkedList> pathsArray = new ArrayList<LinkedList>();
 		
-		add.addActionListener(new ActionListener()
-		{
-			public void actionPerformed(ActionEvent event)
-			{
-				try
-				{
-					int number = Integer.parseInt(duration.getText());
-					
-				}
-				catch(NumberFormatException e)
-				{
-					error.setText("Please enter an integer for duration.");
-				}
+		//an unconnected mass of all completed nodes
+		ArrayList<Activities> nodes = new ArrayList<Activities>();
+		
+		
+		//takes input from text boxes and adds a new complete node to the list of all nodes
+		//DOES NOT ADD NODES TO ANY PATH, JUST CREATES NEW NODES TO BE PROCESSED LATER
+		add.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent event){	
 				
-
-				
-				if(name.getText().equals("") || duration.getText().equals("") || dependencies.getText().equals(""))
-				{
+				//if any boxes are not filled in
+				if(nameBox.getText().equals("") || durationBox.getText().equals("") ) {
 					error.setText("Please fill in all parameters");
 					return;
-				} 	
-				else
-				{	 
-					if(dependencies.getText().toLowerCase().equals("none"))
-					{
-						//create a new path
-						LinkedList network = new LinkedList();//new path
-						list.add(network);
-						String[] dep = {}; 
-						int durat = Integer.parseInt(duration.getText());
-						Actvities act = new Actvities(name.getText(), durat ,dep);
-						network.add(act);
-						error.setText("Activity successfully added.");
+				} 
+				//if all boxes filled in
+				else{	 
+					//create new placeholder activity
+					Activities actToAdd = new Activities();
+					int inputDur; //placeholder for duration
+					String inputName;
+					String depNames;//the whole list, Activities has a method to parse to individual deps
+					
+					//test input duration
+					try{	
+						inputDur = Integer.parseInt(durationBox.getText());
+					}
+					catch(NumberFormatException e){
+						error.setText("Please enter an integer for duration.");
+						return;
 					}
 					
 					
-					else
-					{//add to existing path
-						String[] dep = dependencies.getText().split("/");
-						int durat = Integer.parseInt(duration.getText());
-						Actvities act = new Actvities(name.getText(), durat ,dep);
-						
-						int j = 0;
-						int x=0;
-						
-						boolean nodeExists=false;
-						boolean dependExists=false;
-						boolean multiDepExists=false;
-						  
-						//for each LinkedList in the ArrayList
-						for(int i = 0; i < list.size(); i++)
-							{
-								if(list.get(i).exists(name.getText()))
-								{
-									x=i;
-									nodeExists=true;
-								}
-								if(list.get(i).exists(dependencies.getText())) //only use for singular dependencies
-								{
-									j=i;
-									dependExists=true;
-								}
-								if(dep.length > 1)///////////////////////////////////////////////////////////////////////IF MULTI DEPENDENCIES
-								{
-									if(list.get(i).multiDepenExist(dep))
-									{
-										multiDepExists = true;
-									}
-								}
-							}
-								//check through each LinkedList for Node existence
-								if (!nodeExists && dep.length==1)
-								{
-									if(dependExists)
-									{
-										//as ghost:
-										if(list.get(j).isGhost())
-											//add new node as dependency.next
-											list.get(j).add(act);
-										
-										//as full node
-										{
-											//add new node as dependency.next
-											list.get(j).add(act);
-						
-											if(list.get(j).hasLoop())
-											{
-												error.setText("Node would create cycle.");
-												list.get(j).removeNode(act.getName());
-												return;
-											}
-											
-											error.setText("Activity successfully added.");
-										}
-									}
-											
-									//else if dependency !exist:
-									else 
-									{
-										//create ghost dependency node
-										Actvities dependency = new Actvities(dep[0],0,null,true);
-										
-										//create new LinkedList(ghost->full node)
-										LinkedList ghostList= new LinkedList();
-										ghostList.add(dependency);
-										ghostList.add(act);
-										
-										//add LinkedList to ArrayList
-										list.add(ghostList);
-										return;
-									}
-								}
-								
-								//if the node to be added does exist somewhere
-								else if (nodeExists && dep.length==1)
-								{
-									//if the node exists as a ghost node
-									if(list.get(x).isGhost())
-									{
-										//fill in details of the node from user input
-										list.get(x).updateHead(name.getText(), durat ,dep);
-										//find dependency of the node,
-										LinkedList newList= new LinkedList();
-										//newList=newList.combine(list.get(j),list.get(x),dependencies.getText(),name.getText());
-										newList.combine(list.get(j),list.get(x),dependencies.getText(),name.getText());
-										
-										LinkedList lista=list.get(j);
-										LinkedList listb=list.get(x);
-										
-										/*
-										list.remove(lista);
-										list.remove(listb);
-										list.add(newList);
-										*/
-
-										list.remove(listb);
-									}
-									
-									//if the node exists as a regular node, print error
-									else if(!(list.get(x).isGhost()))
-									{
-										error.setText("Error, that node already exists");
-										return;
-									}
-								}	
-								
-								//MULTI DEPENDENCIES
-								//check through each LinkedList for Node existence
-								if (!nodeExists && dep.length>1)
-								{
-									//for each dependency
-									for(int d=0;d<dep.length;d++)
-									{
-										//if ArrayList is empty, create a first empty list
-										if(list.size()==0)
-										{
-											//create ghost dependency node
-											Actvities dependency = new Actvities(dep[d],0,null,true);
-											
-											//create new LinkedList(ghost->full node)
-											LinkedList ghostList= new LinkedList();
-											ghostList.add(dependency);
-											ghostList.add(act);
-											
-											//add LinkedList to ArrayList
-											list.add(ghostList);
-											continue;
-										}
-										//if it exists in any LinkedList in the ArrayList
-										int t=0;
-										boolean indvExists=false;
-										for(t=0;t<list.size();t++)
-										{
-											if(list.get(t).exists(dep[d]))
-											{
-												indvExists=true;
-												break;
-											}
-										}
-											if(indvExists)
-											{
-												//as ghost:
-												if(list.get(t).isGhost())
-													//add new node as dependency.next
-													list.get(t).add(act);
-												
-												//as full node
-												{
-													//add new node as dependency.next
-													list.get(t).add(act);
-								
-													if(list.get(t).hasLoop())
-													{
-														error.setText("Node would create cycle.");
-														list.get(t).removeNode(act.getName());
-														return;
-													}
-													
-													error.setText("Activity successfully added.");
-												}
-											}
-													
-											//else if dependency !exist:
-											else 
-											{
-												//create ghost dependency node
-												Actvities dependency = new Actvities(dep[d],0,null,true);
-												
-												//create new LinkedList(ghost->full node)
-												LinkedList ghostList= new LinkedList();
-												ghostList.add(dependency);
-												ghostList.add(act);
-												
-												//add LinkedList to ArrayList
-												list.add(ghostList);
-												continue;
-											}
-										}
-									}
-								//if the node to be added does exist somewhere
-								else if (nodeExists && dep.length>1)
-								{
-									//if the node exists as a ghost node
-									if(list.get(x).isGhost())
-									{
-										for(int d=0;d<dep.length;d++)
-										{
-											//fill in details of the node from user input
-											list.get(x).updateHead(name.getText(), durat ,dep);
-											//find dependency of the node,
-											LinkedList newList= new LinkedList();
-											//newList=newList.combine(list.get(j),list.get(x),dependencies.getText(),name.getText());
-											newList.combine(list.get(j),list.get(x),dependencies.getText(),name.getText());
-											/*
-											LinkedList lista=list.get(j);
-											LinkedList listb=list.get(x);
-											
-											list.remove(lista);
-											list.remove(listb);
-											list.add(newList);
-											
-											LinkedList lista=list.get(j);
-											LinkedList listb=list.get(x);
-											
-											if(d==dep.length-1)
-												list.remove(listb);
-											list.remove(lista);
-											list.add(newList);
-											*/
-										}
-									}
-									
-									//if the node exists as a regular node, print error
-									else if(!(list.get(x).isGhost()))
-									{
-										error.setText("Error, that node already exists");
-										return;
-									}
-								}	
-							}
-					
-					
-				
-						
-						/*
-						for(int i= 0; i < list.size(); i++)
-						{
-							if(list.get(i).exists(dependencies.getText()))
-									j = i;
-						}
-						
-						
-						list.get(j).add(act);
-						
-						if(list.get(j).hasLoop())
-						{
-							error.setText("Node would create cycle.");
-							list.get(j).removeNode(act.getName());
+					//set the rest of the node's attributes from the input boxes
+					inputName=nameBox.getText();
+					for(int i=0;i<nodes.size();i++) {
+						if(nodes.get(i).getName().equals(inputName)) {
+							error.setText("Error, node "+inputName+" already exists in the network\n");
 							return;
 						}
-						
-						error.setText("Activity successfully added.");
-						*/
 					}
+					depNames=dependenciesBox.getText();
+					//add the attributes from the text boxes
+					actToAdd.setDuration(inputDur);
+					actToAdd.setName(inputName);
+					actToAdd.setTentDeps(depNames);
+					
+
+					
+					error.setText("Node "+inputName+" successfully added\n");
+					nodes.add(actToAdd);
 					
 				}
 			}
-		);
+		}
+
+		);//add action listener done
 		
-		refresh.addActionListener(new ActionListener()
-		{
-			public void actionPerformed(ActionEvent event) 
-			{
-				//TO STRING 
-				LinkedList temp;
+		
+		//PROCESSES THE LIST OF COMPLETED NODES AND LINKS THEM ALL TOGETHER IN A SERIES OF LINKED LISTS
+		//this is where the paths through the network are created and analyzed, as well as where any error messages
+		//about said paths will arise 
+		process.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent event) {
+				error.setText("");
+				pathsArray.clear();//hard reset the list of paths each time to prevent duplicates
+				boolean headFound=false;
+				ArrayList<String>errorList = new ArrayList<String>();
 				
-				Collections.sort(list, new sortByLength());
-			
+				Activities head = new Activities();
+				//find the head
+				for(int i=0; i<nodes.size();i++) {
+					if(nodes.get(i).getDependencyNames().isEmpty()) {
+						//if there are multiple heads
+						if(headFound==true) {
+							
+							//if this is the first duplicate head, print an error for the original head
+							if(errorList.isEmpty()) {
+								errorList.add("Error: Duplicate heads found, original head:"+head.getName()+"\n");
+							}
+							errorList.add("Duplicate head: "+nodes.get(i).getName()+"\n");
+							continue;
+						}
+						headFound=true;
+						head=nodes.get(i);//just the first one
+					}
+				}
+				//if more than one head
+				if(!errorList.isEmpty()) {
+					String text="";
+					for(int i=0; i<errorList.size();i++) {
+						text+=errorList.get(i);
+					}
+					error.setText(text);
+					return;
+				}
 				
 				
+				
+				//if there was only one head detected
+				//for each node, iterate through the list to link the node with it parents, and update the parent
+				//with pointers to each of its children
+				
+				
+				//for each node in our collection
+				for(int i=0; i<nodes.size();i++) {
+					
+					//change the dependencies from names to pointers, also sets list of children in parents
+					errorList=nodes.get(i).setDeps(nodes);
+					//if some dependencies were named but not completed, display those messages
+					if(!errorList.isEmpty()) {
+						String text="";
+						for(int j=0; j<errorList.size();j++) {
+							text+=errorList.get(j);
+						}
+						String currentText=error.getText();
+						error.setText(currentText+text);
+					}
+				}
+				if(!errorList.isEmpty()) {
+					return;
+				}
+				
+
+				LinkedList newPath = new LinkedList();
+				ArrayList<LinkedList> generatedPathsArray = new ArrayList<LinkedList>();
+				generatedPathsArray=newPath.createPathArray(pathsArray,head,newPath);
+
+				//end while current!= null, im going to try to make the above function recursive
+				
+				if(generatedPathsArray.size()>1) {
+					//sort the completed paths through the network and print them in order of duration
+					Collections.sort(generatedPathsArray, new sortByLength());
+				}
 				String out = "";
-				
-				
-				for(int i = 0; i<list.size(); i++)
-				{
-					out +="Path: " + (i+1) + "\tDuration: " + list.get(i).durationTotal() + "\n";
-					out += list.get(i).pathtoString() + "\n\n\n";
+				for(int i = 0; i<generatedPathsArray.size(); i++){
+					out +="Path: " + (i+1) + "\tDuration: " + generatedPathsArray.get(i).getTotalDuration() + "\n";
+					out += generatedPathsArray.get(i).pathtoString() + "\n\n\n";
 				}
 				output.setText(out);
+				error.setText("Processing completed successfully!");
+				
+			}
+		});
+		
+		edit.addActionListener(new ActionListener()
+		{
+			public void actionPerformed(ActionEvent event)
+			{
+				int duration; 
+				String name = nameBox.getText(); 
+				
+				try{	
+					duration = Integer.parseInt(durationBox.getText());
+				}
+				catch(NumberFormatException e){
+					error.setText("Please enter an integer for duration.");
+					return;
+				}
+				
+				int i;
+				for(i = 0; i < nodes.size(); i++)
+				{
+					if(nodes.get(i).getName().equals(name))
+					{
+						nodes.get(i).setDuration(duration);
+					}
+				}
+				
+				error.setText("The duration of activity " + name + " has been changed to " + duration + ".");
+				
+				
+			}
+		});
+		
+		critical.addActionListener(new ActionListener()
+		{
+			public void actionPerformed(ActionEvent event)
+			{
+				error.setText("");
+				pathsArray.clear();//hard reset the list of paths each time to prevent duplicates
+				boolean headFound=false;
+				ArrayList<String>errorList = new ArrayList<String>();
+				
+				Activities head = new Activities();
+				//find the head
+				for(int i=0; i<nodes.size();i++) {
+					if(nodes.get(i).getDependencyNames().isEmpty()) {
+						//if there are multiple heads
+						if(headFound==true) {
+							
+							//if this is the first duplicate head, print an error for the original head
+							if(errorList.isEmpty()) {
+								errorList.add("Error: Duplicate heads found, original head:"+head.getName()+"\n");
+							}
+							errorList.add("Duplicate head: "+nodes.get(i).getName()+"\n");
+							continue;
+						}
+						headFound=true;
+						head=nodes.get(i);//just the first one
+					}
+				}
+				//if more than one head
+				if(!errorList.isEmpty()) {
+					String text="";
+					for(int i=0; i<errorList.size();i++) {
+						text+=errorList.get(i);
+					}
+					error.setText(text);
+					return;
+				}
+				
+				
+				//if there was only one head detected
+				//for each node, iterate through the list to link the node with it parents, and update the parent
+				//with pointers to each of its children
+				
+				
+				//for each node in our collection
+				for(int i=0; i<nodes.size();i++) {
+					
+					//change the dependencies from names to pointers, also sets list of children in parents
+					errorList=nodes.get(i).setDeps(nodes);
+					//if some dependencies were named but not completed, display those messages
+					if(!errorList.isEmpty()) {
+						String text="";
+						for(int j=0; j<errorList.size();j++) {
+							text+=errorList.get(j);
+						}
+						String currentText=error.getText();
+						error.setText(currentText+text);
+					}
+				}
+				if(!errorList.isEmpty()) {
+					return;
+				}
+				
+
+				LinkedList newPath = new LinkedList();
+				ArrayList<LinkedList> generatedPathsArray = new ArrayList<LinkedList>();
+				generatedPathsArray=newPath.createPathArray(pathsArray,head,newPath);
+
+				//end while current!= null, im going to try to make the above function recursive
+				
+				if(generatedPathsArray.size()>1) {
+					//sort the completed paths through the network and print them in order of duration
+					Collections.sort(generatedPathsArray, new sortByLength());
+				}
+				String out = "";
+				int length = generatedPathsArray.get(0).getTotalDuration();
+				for(int i = 0; i<generatedPathsArray.size(); i++){
+					if(generatedPathsArray.get(i).getTotalDuration() == length)
+					{
+						out +="Path: " + (i+1) + "\tDuration: " + generatedPathsArray.get(i).getTotalDuration() + "\n";
+						out += generatedPathsArray.get(i).pathtoString() + "\n\n\n";
+					}
+					
+				}
+				output.setText(out);
+				error.setText("Critical Path(s) displayed.");
+				
 			}
 		});
 		
@@ -395,7 +362,7 @@ public class Main {
 		{
 			public void actionPerformed(ActionEvent event)
 			{
-				error.setText("This program takes in a set of user activites, then sorts them in descending order by duration of the activity.");
+				error.setText("This project was created by Andrew Nguyen, Allen Soocey, Luke Shaffer, and Joel Torres. The program takes in a set of nodes from the user to create an activity network, which is then broken down into different paths.");
 			}
 		});
 		
@@ -403,7 +370,7 @@ public class Main {
 		{
 			public void actionPerformed(ActionEvent event)
 			{
-				error.setText("In the respective fields input activity name, duration, and dependencies. (Input dependencies seperated by a '/'). Press the add button to add an activity to the list. Press refresh to print current list of activites (sorted by duration).");
+				error.setText("In the respective fields, input activity name, duration, and dependencies (input dependencies seperated by a '/'). Press the add button to add an activity to the list. Press process to print the current list of network paths (sorted by duration). Use the edit button to change the duration of an exisiting node. By pressing the critical path button, the critical path will be displayed. About and help give the user information about the program and the report button will create a text file with network information.");
 			}
 		});
 		
@@ -415,6 +382,138 @@ public class Main {
 			}
 		});
 		
+		SimpleDateFormat formatter = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+	    Date date = new Date();
+	    
+		report.addActionListener(new ActionListener()
+		{
+			public void actionPerformed(ActionEvent event)
+			{
+				error.setText("");
+				pathsArray.clear();//hard reset the list of paths each time to prevent duplicates
+				boolean headFound=false;
+				ArrayList<String>errorList = new ArrayList<String>();
+				
+				Activities head = new Activities();
+				//find the head
+				for(int i=0; i<nodes.size();i++) {
+					if(nodes.get(i).getDependencyNames().isEmpty()) {
+						//if there are multiple heads
+						if(headFound==true) {
+							
+							//if this is the first duplicate head, print an error for the original head
+							if(errorList.isEmpty()) {
+								errorList.add("Error: Duplicate heads found, original head:"+head.getName()+"\n");
+							}
+							errorList.add("Duplicate head: "+nodes.get(i).getName()+"\n");
+							continue;
+						}
+						headFound=true;
+						head=nodes.get(i);//just the first one
+					}
+				}
+				//if more than one head
+				if(!errorList.isEmpty()) {
+					String text="";
+					for(int i=0; i<errorList.size();i++) {
+						text+=errorList.get(i);
+					}
+					error.setText(text);
+					return;
+				}
+				
+				
+				//if there was only one head detected
+				//for each node, iterate through the list to link the node with it parents, and update the parent
+				//with pointers to each of its children
+				
+				
+				//for each node in our collection
+				for(int i=0; i<nodes.size();i++) {
+					
+					//change the dependencies from names to pointers, also sets list of children in parents
+					errorList=nodes.get(i).setDeps(nodes);
+					//if some dependencies were named but not completed, display those messages
+					if(!errorList.isEmpty()) {
+						String text="";
+						for(int j=0; j<errorList.size();j++) {
+							text+=errorList.get(j);
+						}
+						String currentText=error.getText();
+						error.setText(currentText+text);
+					}
+				}
+				if(!errorList.isEmpty()) {
+					return;
+				}
+				
+
+				LinkedList newPath = new LinkedList();
+				ArrayList<LinkedList> generatedPathsArray = new ArrayList<LinkedList>();
+				generatedPathsArray=newPath.createPathArray(pathsArray,head,newPath);
+
+				//end while current!= null, im going to try to make the above function recursive
+				
+					
+				
+				
+				if(rip.getText() == "")
+				{
+					error.setText("Must insert file name in order to create a report.");
+					
+				}
+				String path = "C://Users//asoocey//Desktop//team//" + rip.getText() + ".txt";
+				File report = new File(path);
+				try {
+				FileWriter write = new FileWriter(report);
+				write.write( formatter.format(date));
+				write.write(System.getProperty("line.separator"));
+				write.write("ACTIVITY NETWORK REPORT");
+				write.write(System.getProperty("line.separator"));
+				write.write(System.getProperty("line.separator"));
+
+				write.write("List of all nodes:");
+				write.write(System.getProperty("line.separator"));
+
+				ArrayList<String> sorted = new ArrayList<String>();
+				for(int i = 0; i < nodes.size(); i++)
+				{
+					sorted.add(nodes.get(i).getName() + "\t" + nodes.get(i).getDuration());
+				}
+				Collections.sort(sorted, String.CASE_INSENSITIVE_ORDER);
+				for(int i = 0; i < sorted.size(); i++)
+				{
+					write.write(sorted.get(i));
+					write.write(System.getProperty("line.separator"));
+
+				}
+				write.write(System.getProperty("line.separator"));
+				write.write(System.getProperty("line.separator"));
+
+				
+				if(generatedPathsArray.size()>1) {
+					//sort the completed paths through the network and print them in order of duration
+					Collections.sort(generatedPathsArray, new sortByLength());
+				}
+				for(int i = 0; i<generatedPathsArray.size(); i++){
+					write.write("Path: " + (i+1) + "\tDuration: " + generatedPathsArray.get(i).getTotalDuration());
+					write.write(System.getProperty("line.separator"));
+					write.write(generatedPathsArray.get(i).pathtoString());
+					write.write(System.getProperty("line.separator"));
+					write.write(System.getProperty("line.separator"));
+					write.write(System.getProperty("line.separator"));
+
+				}	
+				write.close();				
+				}
+				catch(Exception e)
+				{
+					
+				};
+				
+			}
+		});
+		
 		restart.addActionListener(new ActionListener()
 		{
 			public void actionPerformed(ActionEvent event)
@@ -422,14 +521,62 @@ public class Main {
 				error.setText("No messages");
 				output.setText("No Activities");
 				
-				list.clear();//delete arraylist
+				nameBox.setText("");
+				durationBox.setText("");
+				dependenciesBox.setText("");
+				
+				pathsArray.clear();//delete arraylist
+				nodes.clear();//delete
 			}
 		});
 		
 		frame.setVisible(true);
-		
-		
-		
 	}
+	
+
+	
+	/*old process logic
+	LinkedList newPath = new LinkedList();
+	Activities current = new Activities();
+	newPath.add(head);
+	current=head;
+
+	while(current!=null) {
+		//iterate through the list by children
+		
+		//base case
+		if(current.getChildren().size()==0) {
+			current=null;
+			if(pathsArray.contains(newPath)) {
+				
+			}
+			else {
+				paths.add(newPath);
+			}
+			break;//prevents adding this last empty path
+		}
+		//if there is only one child, add it and continue
+		else if(current.getChildren().size()==1) {
+			newPath.add(current.getOnlyChild());
+			current=current.getOnlyChild();
+		}
+		
+		//else if this node has multiple children
+		else if (current.getChildren().size()>1) {
+		//for each child listed
+			System.out.println("HAHA, multiple children, exiting");
+			//break;
+			ArrayList<LinkedList> listOfChildrenPaths= new ArrayList<LinkedList>();
+			for(int child=0;child<current.getChildren().size();child++) {
+				//recursively add paths
+				LinkedList childpath=newPath.copy();
+				
+			}
+		}
+		if(!pathsArray.contains(newPath)) {
+			pathsArray.add(newPath);
+		}
+	}
+	*/
 
 }

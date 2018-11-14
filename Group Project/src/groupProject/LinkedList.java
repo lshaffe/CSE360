@@ -1,214 +1,182 @@
-package groupProject;
+package cse360;
 import java.util.*;
 
+
 public class LinkedList{
+	private class Node{
+		Node prev;
+		Activities data;
+		Node next;
+		
+		Node(){
+			prev=null;
+			data=null;
+			next=null;
+		}
+		boolean hasNext() {
+			if(this.next==null)
+				return false;
+			else
+				return true;
+		}
+		
+		
+	};
 
-
+	private Node head;	
+	private Node tail;
 	
-	private Actvities head;
-	
-	
-	public LinkedList()
-	{
+	public LinkedList(){
 		head = null;
+		tail=null;
 	}
 	
-	public void add(Actvities activity)
-	{
-		if(head == null)
-		{
-			head = activity;
+	public void add(Activities activity){
+		if(head == null){
+			head = new Node();
+			head.data = activity;
 			head.next = null;
 		}
-		else
-		{
-			Actvities current = new Actvities();
-			current = head;
-			while(current.next != null)
-			{
-				current = current.next;
+		else{
+			Node current = head;
+			while(current.hasNext()) {
+				current=current.next;
 			}
-			current.next = activity;
-			activity.next = null;	
+			
+			//current is now the tail of the linked list
+			Node newNode = new Node();
+			newNode.data=activity;
+			newNode.prev=current;
+			newNode.next=null;
+			tail=newNode;
+			
+			current.next=newNode;
 		}
 
 	}
 	
-	public void delete()
-	{
-		head = null;
+	public void add(Node node){
+		if(head == null){
+			head = node;
+			head.prev=null;
+		}
+		else{
+			Node current = head;
+			while(current.hasNext()) {
+				current=current.next;
+			}
+			
+			//current is now the tail of the linked list
+			Node newNode = new Node();
+			newNode=node;
+			newNode.prev=current;
+			newNode.next=null;
+			
+			current.next=newNode;
+		}
+
 	}
 	
-	public int durationTotal()//gets sum of path duration
-	{
+	//gets sum of path duration
+	public int getTotalDuration(){
 		int sum = 0;
-		Actvities current = head;
+		Node current = head;
 		
-		while(current != null)
-		{
-			sum += current.getDuration();
+		while(current != null){
+			sum += current.data.getDuration();
 			current = current.next;
 		}
-		
 		return sum;
 	}
 	
-	public String pathtoString()
-	{
-		Actvities current = head;
-		//sort then make String
-		//intSort();
-		
+	public String pathtoString(){
+		Node current = head;
 		String output = "";
 		
-		while(current != null)
-		{
-			output += current.getName() + ", " + current.getDuration()+ ", (" + current.dependencyString(current.getDependency()) + ")" + "\n";
-			
+		while(current != null){
+			output += current.data.getName() + ", " + current.data.getDuration()+ ", (" + current.data.getDependencyString() + ")" + "\n";
 			current = current.next;
 		}
 		
 		return output;
 	}
+
 	
-	public boolean exists(String name)
-	{
-		boolean exists = false;
-		
-		Actvities current = head;
-		while(current != null)
-		{
-			if(current.getName().equals(name))
-				return true;
-			current = current.next;
-		}
-		return exists;
-	}
-	
-	public boolean dependencyExists(String name)
-	{
-		boolean exists = false;
-		
-		Actvities current = head;
-		while(current != null)
-		{
-			if(current.getDependency().equals(name))
-				return true;
-			current = current.next;
-		}
-		return exists;
-	}
-	
-	public boolean multiDepenExist(String[] deps)
-	{
-		boolean exists = true;
-		
-		for(int i=0; i < deps.length; i++)
-		{
-			if(!exists(deps[i]))
-			{
-				exists = false;
-			}
-		}
-	
-		return exists;
-	}
-	
-	public boolean hasLoop()
-	{
-		ArrayList prevNodes = new ArrayList();
-		Actvities current = head;
-		while (current!=null)
-		{
-			if (!prevNodes.contains(current.next))
-			{
-				prevNodes.add(current);
-				current = current.next;
-			}
-			else
-			{
+	//this function loops through each LinkedList (unique path) and determines if duplicate entries exist in a single path
+	public boolean hasLoop(){
+		Node current=head;
+		ArrayList<String> foundNodeNames=new ArrayList<String>();
+		while(current!=null) {
+			//check if the current node is already present in our path
+			if(foundNodeNames.contains(current.data.getName())) {
 				return true;
 			}
-		}
-		return false;	
-	}
-	
-	public void removeNode(String name)
-	{
-		Actvities current = head;
-		
-		while(current!=null)
-		{
-			if(current.getName().equals(name))
-			{
-				current = null;
-				return;
+			else {
+				foundNodeNames.add(current.data.getName());
 			}
-			current = current.next;
 		}
-	}
-	
-	public Actvities findByName(String name)
-	{
-		Actvities current = head;
-		while(current!=null)
-		{
-			if(current.getName().equals(name))
-				return current;
-			current = current.next;
-		}
-		return null;
-	}
-	public boolean isGhost()
-	{
-		if(head.isGhost())
-		{
-			return true;
-		}
+		
+		//default case
 		return false;
 	}
 	
-	//public LinkedList combine(LinkedList a,LinkedList b,String parent,String child)
-	public void combine(LinkedList a,LinkedList b,String parent,String child)
-	{
-		/*
-		LinkedList result = new LinkedList();
-		Actvities par = a.findByName(parent);
-		Actvities chil = b.findByName(child);
+	public LinkedList copy() {
+		LinkedList copy = new LinkedList();
+		copy.head = new Node();
 		
-		Actvities current=a.head;
-		while(current!=par )
-		{
-			result.add(current);
+		Node current=this.head;
+		copy.head.data=current.data;
+		current=current.next;
+		
+		while(current!=null) {
+			copy.add(current.data);
 			current=current.next;
 		}
-		result.add(current);
-		
-		current=b.head;
-		while(current!=null)
-		{
-			result.add(current);
-			current=current.next;
-		}
-		
-		return result;
-		*/
-		Actvities par = a.findByName(parent);
-		Actvities chil = b.findByName(child);
-		par.next=chil;
-		
+		return copy;
 	}
 	
-	public void updateHead(String name, int length, String[] depends)
-	{
-		Actvities newHead = new Actvities();
-		Actvities newAct = new Actvities(name,length,depends);
-		newHead=newAct;
+	public ArrayList<LinkedList> createPathArray(ArrayList<LinkedList> pathArray, Activities head,LinkedList newPath) {
+		//add the given head pointer to the end of the given LinkedList pointer regardless of # of children
+		Activities current=head;
+		if(current.getChildren().size()==0) {
+			newPath.add(head);
+			if(!pathArray.contains(newPath)) {
+				pathArray.add(newPath);
+			}
+			return pathArray;
+		}
+		//for each child of the current node
+		newPath.add(head);
+		for(int i=0;i<current.getChildren().size();i++) {
+			
+			//set reference variables for each loop iteration
+			Activities currentChild = current.getChildren().get(i);
+			int childCount = current.getChildren().size();
+			
+			//base case
+			if(childCount<1){
+				newPath.add(head);
+				if(!pathArray.contains(newPath)) {
+					pathArray.add(newPath);
+				}
+				return pathArray;
+			}
+			//non splitting recursion
+			else if(childCount==1) {
+				pathArray=createPathArray(pathArray,currentChild,newPath);
+				return pathArray;
+			}
+			else if(childCount>1) {
+				ArrayList<LinkedList> branchingPaths = new ArrayList<LinkedList>();
+				LinkedList childPath = newPath.copy();
+					branchingPaths=createPathArray(branchingPaths,currentChild,childPath);
+					pathArray.addAll(branchingPaths);
+				//return pathArray;
+			}
+		}
 		
-		Actvities Hnext=head.next;
-		head=newHead;
-		head.next=Hnext;
-		return;
+		return pathArray;
 	}
-
 }
+
+
